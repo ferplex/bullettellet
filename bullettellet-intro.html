@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BULLETTELLET — INTRO</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #bg-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+    filter: brightness(0.35) saturate(1.4);
+  }
+
+  #vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%);
+    z-index: 1;
+  }
+
+  #scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+  }
+
+  #dialog-box {
+    position: relative;
+    z-index: 10;
+    width: min(720px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  #speaker-bar {
+    background: rgba(0, 180, 255, 0.15);
+    border: 1px solid rgba(0, 180, 255, 0.5);
+    border-bottom: none;
+    padding: 6px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+
+  #speaker-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00b4ff;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  #speaker-name {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #00b4ff;
+    font-weight: bold;
+  }
+
+  #text-box {
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid rgba(0, 180, 255, 0.4);
+    padding: 22px 24px 20px;
+    min-height: 110px;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  #dialog-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #e8f4ff;
+    white-space: pre-wrap;
+    letter-spacing: 0.3px;
+  }
+
+  #dialog-text.sky-style {
+    color: #00e5ff;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    font-weight: bold;
+  }
+
+  #continue-hint {
+    position: absolute;
+    bottom: -28px;
+    right: 0;
+    font-size: 11px;
+    color: rgba(0, 180, 255, 0.6);
+    letter-spacing: 2px;
+    animation: blink 1.2s step-end infinite;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  #logo-overlay {
+    position: absolute;
+    z-index: 20;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+  }
+
+  #logo-title {
+    font-size: clamp(40px, 8vw, 72px);
+    letter-spacing: 12px;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(0,180,255,0.8), 0 0 80px rgba(0,100,200,0.4);
+    font-weight: bold;
+  }
+
+  #logo-sub {
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: rgba(0, 200, 255, 0.7);
+    margin-top: 10px;
+  }
+
+  #skip-btn {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 30;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.35);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  #skip-btn:hover {
+    border-color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.7);
+  }
+
+  #progress {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 30;
+  }
+
+  .prog-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.4s;
+  }
+
+  .prog-dot.active {
+    background: #00b4ff;
+  }
+
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: white;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  #title-card {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 1;
+    transition: opacity 1s ease;
+  }
+
+  #title-card-text {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: rgba(0, 180, 255, 0.6);
+  }
+
+  #title-card-year {
+    font-size: 28px;
+    letter-spacing: 8px;
+    color: rgba(255,255,255,0.15);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<div id="title-card">
+  <div id="title-card-text">FLOTA K1 / COMANDO SKY</div>
+  <div id="title-card-year">AÑO 2142</div>
+</div>
+
+<div id="scene">
+  <img id="bg-img" src="" alt="">
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
+
+  <div id="logo-overlay">
+    <div id="logo-title">BULLETTELLET</div>
+    <div id="logo-sub">CADETE FERPLEX — FLOTA K1</div>
+  </div>
+
+  <div id="dialog-box" style="display:none;">
+    <div id="speaker-bar">
+      <div id="speaker-dot"></div>
+      <div id="speaker-name">SKY</div>
+    </div>
+    <div id="text-box">
+      <div id="dialog-text"></div>
+    </div>
+    <div id="continue-hint">[ CLICK / SPACE PARA CONTINUAR ]</div>
+  </div>
+</div>
+
+<button id="skip-btn" onclick="skipIntro()">SKIP ▶</button>
+
+<div id="progress"></div>
+
+<script>
+const POLLINATIONS = 'https://image.pollinations.ai/prompt/';
+
+const scenes = [
+  {
+    id: 0,
+    type: 'title',
+    duration: 3000,
+  },
+  {
+    id: 1,
+    type: 'dialog',
+    speaker: 'SKY — IA DE COMANDO',
+    speakerStyle: 'sky',
+    bg: 'dark military command room holographic displays neon blue sci-fi cyberpunk year 2142 tactical hud interface cinematic',
+    text: 'INICIANDO PROTOCOLO DE ALERTA ROJA.\nCADETE FERPLEX. PRESENCIA EN CUBÍCULA DE BRIEFING.\nPERFIL CONFIRMADO: FUERZA ESPECIAL HÍBRIDA K1.\nCAPACIDADES: SPETSNAZ / MARINES / HACKER ÉLITE.',
+    typeSpeed: 22,
+  },
+  {
+    id: 2,
+    type: 'dialog',
+    speaker: 'CDTE. JUANITO — COMANDO SKY',
+    speakerStyle: 'normal',
+    bg: 'military commander holographic screen sci-fi space station year 2142 cinematic portrait dramatic lighting',
+    text: 'Ferplex, las lecturas del Sector 7 son imposibles. Algo está drenando la biomasa del Planeta Aegis-9.\n\nNo es una invasión normal. Es... consumo.\n\nPor eso te envío a ti. No eres un soldado genérico.\nEres lo mejor que tenemos: un Híbrido K1.',
+    typeSpeed: 28,
+  },
+  {
+    id: 3,
+    type: 'dialog',
+    speaker: 'MAZZATO — ANÁLISIS TÁCTICO',
+    speakerStyle: 'normal',
+    bg: 'scientist holographic graphs bioluminescent alien jellyfish data analysis sci-fi lab 2142 cinematic blue glow',
+    text: 'Ferplex, estas medusas no son animales. Son inteligentes.\nTienen una red neural distribuida.\n\nPero aquí viene lo bueno: tu entrenamiento K1 te permite interfaz con su biología.\n\nPuedes hackear sus tentáculos. Hacer que se ataquen entre ellas.',
+    typeSpeed: 28,
+  },
+  {
+    id: 4,
+    type: 'dialog',
+    speaker: 'NEKOCAT — RECONOCIMIENTO',
+    speakerStyle: 'normal',
+    bg: 'space reconnaissance satellite view giant bioluminescent alien jellyfish consuming planet atmosphere cinematic sci-fi dramatic',
+    text: '¿Olvídate de los gráficos, Mazzato.\n\nSon medusas del tamaño de CONTINENTES.\nEstán chupando el planeta como jugo de caja.\n\nPero tranquilo, Ferplex. Con tu entrenamiento Spetsnaz puedes infiltrarte en sus nodos sin ser detectado.\n\nY si te detectan... ya sabes cómo disparar.',
+    typeSpeed: 28,
+  },
+  {
+    id: 5,
+    type: 'dialog',
+    speaker: 'DAN — INGENIERÍA DE NAVE',
+    speakerStyle: 'normal',
+    bg: 'spaceship hangar engineer holographic shields upgrade sci-fi neon blue cinematic year 2142 dramatic lighting',
+    text: '¡Tranquilo, Ferplex! He recalibrado los escudos de la Bullette y añadí un módulo de interfaz neural.\n\nSi esas cosas sueltan descargas bioeléctricas, te mantendré entero.\n\nY cuando necesites hackear algo, tu traje K1 tiene los puertos de conexión listos.',
+    typeSpeed: 28,
+  },
+  {
+    id: 6,
+    type: 'dialog',
+    speaker: 'SKY — IA DE COMANDO',
+    speakerStyle: 'sky',
+    bg: 'spaceship cockpit launching atmosphere purple sky alien planet bioluminescent jellyfish cinematic sci-fi 2142',
+    text: 'MISIÓN: INFILTRARSE EN ATMÓSFERA DE AEGIS-9.\nOBJETIVO 1: DESTRUIR NODOS DE ABSORCIÓN.\nOBJETIVO 2: HACKEAR RED NEURAL DE LAS MEDUSAS.\nOBJETIVO 3: RESCATAR SUPERVIVIENTES.\n\nCADETE FERPLEX — ¿PROCEDEMOS?',
+    typeSpeed: 18,
+  },
+  {
+    id: 7,
+    type: 'response',
+    speaker: 'CADETE FERPLEX — HÍBRIDO K1',
+    speakerStyle: 'normal',
+    bg: 'elite soldier neural ports glowing electric blue tactical suit cockpit launch cinematic dramatic sci-fi 2142',
+    text: '...\n\nAFFIRMATIVE.',
+    typeSpeed: 60,
+  },
+  {
+    id: 8,
+    type: 'logo',
+    duration: 4000,
+    bg: 'spaceship flying through purple nebula space bioluminescent alien jellyfish cinematic epic sci-fi 2142',
+  },
+];
+
+let currentScene = 0;
+let typing = false;
+let typeInterval = null;
+let fullText = '';
+let skipTyping = false;
+let canAdvance = false;
+
+const bgImg = document.getElementById('bg-img');
+const dialogBox = document.getElementById('dialog-box');
+const speakerBar = document.getElementById('speaker-bar');
+const speakerName = document.getElementById('speaker-name');
+const dialogText = document.getElementById('dialog-text');
+const continueHint = document.getElementById('continue-hint');
+const logoOverlay = document.getElementById('logo-overlay');
+const titleCard = document.getElementById('title-card');
+const progressEl = document.getElementById('progress');
+const flashEl = document.getElementById('flash');
+
+function buildProgress() {
+  progressEl.innerHTML = '';
+  const dialogScenes = scenes.filter(s => s.type === 'dialog' || s.type === 'response');
+  dialogScenes.forEach((s, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'prog-dot';
+    dot.id = `dot-${s.id}`;
+    progressEl.appendChild(dot);
+  });
+}
+
+function updateProgress(sceneId) {
+  document.querySelectorAll('.prog-dot').forEach(d => d.classList.remove('active'));
+  const dot = document.getElementById(`dot-${sceneId}`);
+  if (dot) dot.classList.add('active');
+}
+
+function flashScreen(cb) {
+  flashEl.style.opacity = '0.6';
+  setTimeout(() => {
+    flashEl.style.opacity = '0';
+    if (cb) setTimeout(cb, 200);
+  }, 120);
+}
+
+function loadBg(prompt, onLoad) {
+  const encoded = encodeURIComponent(prompt + ', no text, no watermark, cinematic aspect ratio');
+  const url = `${POLLINATIONS}${encoded}?width=1280&height=720&seed=${Math.floor(Math.random()*9999)}&nologo=true`;
+  const img = new Image();
+  img.onload = () => {
+    bgImg.src = url;
+    bgImg.style.opacity = '1';
+    if (onLoad) onLoad();
+  };
+  img.onerror = () => {
+    if (onLoad) onLoad();
+  };
+  bgImg.style.opacity = '0';
+  img.src = url;
+}
+
+function typeText(text, speed, style, onDone) {
+  dialogText.textContent = '';
+  dialogText.className = style === 'sky' ? 'sky-style' : '';
+  fullText = text;
+  let i = 0;
+  typing = true;
+  skipTyping = false;
+  canAdvance = false;
+  continueHint.style.opacity = '0';
+
+  typeInterval = setInterval(() => {
+    if (skipTyping) {
+      clearInterval(typeInterval);
+      dialogText.textContent = fullText;
+      typing = false;
+      canAdvance = true;
+      continueHint.style.opacity = '1';
+      if (onDone) onDone();
+      return;
+    }
+    dialogText.textContent += text[i];
+    i++;
+    if (i >= text.length) {
+      clearInterval(typeInterval);
+      typing = false;
+      canAdvance = true;
+      continueHint.style.opacity = '1';
+      if (onDone) onDone();
+    }
+  }, speed);
+}
+
+function showScene(index) {
+  if (index >= scenes.length) {
+    endIntro();
+    return;
+  }
+
+  const scene = scenes[index];
+
+  if (scene.type === 'title') {
+    titleCard.style.opacity = '1';
+    setTimeout(() => {
+      titleCard.style.opacity = '0';
+      setTimeout(() => {
+        titleCard.style.display = 'none';
+        showScene(index + 1);
+      }, 1000);
+    }, scene.duration);
+    return;
+  }
+
+  if (scene.type === 'logo') {
+    dialogBox.style.display = 'none';
+    logoOverlay.style.opacity = '0';
+    loadBg(scene.bg, () => {
+      setTimeout(() => {
+        logoOverlay.style.opacity = '1';
+        setTimeout(() => {
+          showScene(index + 1);
+        }, scene.duration);
+      }, 500);
+    });
+    return;
+  }
+
+  updateProgress(scene.id);
+  dialogBox.style.display = 'flex';
+  logoOverlay.style.opacity = '0';
+
+  speakerName.textContent = scene.speaker;
+  speakerBar.style.opacity = '1';
+  speakerBar.style.transform = 'translateY(0)';
+  continueHint.style.opacity = '0';
+
+  loadBg(scene.bg, () => {
+    typeText(scene.text, scene.typeSpeed, scene.speakerStyle, () => {});
+  });
+}
+
+function advance() {
+  if (typing) {
+    skipTyping = true;
+    return;
+  }
+  if (!canAdvance) return;
+
+  canAdvance = false;
+  currentScene++;
+  flashScreen(() => showScene(currentScene));
+}
+
+function skipIntro() {
+  clearInterval(typeInterval);
+  endIntro();
+}
+
+function endIntro() {
+  if(window.parent && window.parent !== window){
+    window.parent.postMessage('INTRO_DONE', '*');
+  } else {
+    document.body.innerHTML = `
+      <div style="background:#000;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;color:#00b4ff;gap:16px;">
+        <div style="font-size:36px;letter-spacing:10px;color:#fff;text-shadow:0 0 30px rgba(0,180,255,0.8)">BULLETTELLET</div>
+        <div style="font-size:11px;letter-spacing:4px;color:rgba(0,180,255,0.6)">CADETE FERPLEX — MISIÓN INICIADA</div>
+        <div style="margin-top:30px;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,0.3)">[ CARGANDO NIVEL 1... ]</div>
+      </div>
+    `;
+  }
+}
+
+document.addEventListener('click', advance);
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') advance();
+});
+
+buildProgress();
+showScene(0);
+</script>
+</body>
+</html>
